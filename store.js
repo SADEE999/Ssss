@@ -43,7 +43,7 @@
     const label=$('#account-button-label'),signedIn=$('#account-signed-in'),signedOut=$('#account-signed-out'),emailNode=$('#account-user-email');
     if(label)label.textContent=session?(session.user.email||'My account'):'Account / Login';
     if(signedIn)signedIn.hidden=!session;if(signedOut)signedOut.hidden=!!session;
-    if(emailNode)emailNode.textContent=session?.user?.email||'Signed in';if(session){paintProfile(session.user);loadMyAccountOrders(session);}
+    if(emailNode)emailNode.textContent=session?.user?.email||'Signed in';
     if(session&&form){
       const meta=session.user.user_metadata||{};
       if(form.elements.customer_name&&!form.elements.customer_name.value)form.elements.customer_name.value=meta.full_name||meta.name||'';
@@ -56,22 +56,28 @@
     const {error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
     if(error)$('#account-message').textContent=error.message;
   }
-  function accountNote(message,ok=false){const n=$('#account-message');if(n){n.textContent=message;n.className='form-message'+(ok?' success':'');}}
-  function paintProfile(user){if(!user)return;const meta=user.user_metadata||{},name=meta.display_name||meta.full_name||meta.name||user.email?.split('@')[0]||'Customer',avatar=meta.avatar_url||meta.picture||'assets/sadee-xdima-loading.png';const img=$('#account-avatar');if(img)img.src=avatar;const title=$('#account-profile-name');if(title)title.textContent=name;const email=$('#account-user-email');if(email)email.textContent=user.email||'';const f=$('#account-profile-form');if(f?.elements.display_name)f.elements.display_name.value=name;}
-  async function loadMyAccountOrders(session){const host=$('#account-orders-list'),note=$('#account-orders-message');if(!host||!note)return;host.innerHTML='';note.textContent='Loading your order history…';try{const r=await fetch('/.netlify/functions/my-orders',{headers:{authorization:'Bearer '+session.access_token}});const d=await readFunctionJson(r,'Order history');const rows=d.orders||[];note.textContent=rows.length?`Showing ${rows.length} latest order(s).`:'No orders are linked to this account yet.';host.innerHTML=rows.map(o=>`<a class="account-order-pick" href="order-status.html?code=${encodeURIComponent(o.order_code)}"><span><b>${esc(o.product_name)}</b><small>${esc(o.plan_name)} · ${new Date(o.created_at).toLocaleDateString()}</small></span><span><strong>${esc(o.status.toUpperCase())}</strong><small>${esc(o.order_code)}</small></span></a>`).join('');}catch(e){note.textContent=e.message||'Could not load order history.';}}
-  $('#account-password-form')?.addEventListener('submit',async e=>{e.preventDefault();if(!client){accountNote('Login service is not configured.');return;}const f=e.currentTarget,email=String(f.elements.email.value||'').trim(),password=f.elements.password.value;accountNote('Signing in…');const {error}=await client.auth.signInWithPassword({email,password});if(error)accountNote(error.message);else{f.reset();accountNote('Signed in successfully.',true);}});
-  $('#account-signup')?.addEventListener('click',async()=>{if(!client){accountNote('Login service is not configured.');return;}const f=$('#account-password-form'),email=String(f.elements.email.value||'').trim(),password=f.elements.password.value;if(!email||password.length<8){accountNote('Enter an email and password with at least 8 characters.');return;}accountNote('Creating your account…');const {data,error}=await client.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});if(error)accountNote(error.message);else accountNote(data.session?'Account created and signed in.':'Account created. Check your email to confirm, then sign in.',true);});
-  $('#account-reset')?.addEventListener('click',async()=>{if(!client){accountNote('Login service is not configured.');return;}const email=String($('#account-password-form')?.elements.email.value||'').trim();if(!email){accountNote('Enter your email address first.');return;}const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});accountNote(error?error.message:'If that account exists, a password reset email has been sent.',!error);});
-  $('#account-profile-form')?.addEventListener('submit',async e=>{e.preventDefault();if(!client||!currentSession){accountNote('Please sign in first.');return;}const f=e.currentTarget,name=String(f.elements.display_name.value||'').trim(),file=$('#account-avatar-file')?.files?.[0];if(!name){$('#account-profile-message').textContent='Enter your display name.';return;}const msg=$('#account-profile-message'),btn=f.querySelector('[type=submit]');btn.disabled=true;msg.textContent='Saving profile…';try{const meta={...(currentSession.user.user_metadata||{}),display_name:name,full_name:name};if(file){if(file.size>2*1024*1024)throw new Error('Profile image must be 2 MB or smaller.');if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Use JPG, PNG or WebP image.');const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg',path=`${currentSession.user.id}/avatar.${ext}`;const {error:upErr}=await client.storage.from('customer-avatars').upload(path,file,{upsert:true,contentType:file.type,cacheControl:'3600'});if(upErr)throw upErr;const {data}=client.storage.from('customer-avatars').getPublicUrl(path);meta.avatar_url=data.publicUrl+'?v='+Date.now();}const {data,error}=await client.auth.updateUser({data:meta});if(error)throw error;currentSession={...currentSession,user:data.user};paintProfile(data.user);msg.textContent='Profile saved successfully.';msg.className='form-message success';}catch(err){msg.textContent=err.message||'Could not save profile.';msg.className='form-message';}finally{btn.disabled=false;}});
-  $('#account-password-change')?.addEventListener('submit',async e=>{e.preventDefault();if(!client||!currentSession){return;}const f=e.currentTarget,pw=f.elements.new_password.value,msg=$('#account-password-message'),btn=f.querySelector('button');if(pw.length<8){msg.textContent='Use at least 8 characters.';return;}btn.disabled=true;msg.textContent='Updating password…';const {error}=await client.auth.updateUser({password:pw});btn.disabled=false;if(error){msg.textContent=error.message;msg.className='form-message';}else{f.reset();msg.textContent='Password changed successfully.';msg.className='form-message success';}});
   $('#account-button')?.addEventListener('click',showAccount);
   $('#close-account-modal')?.addEventListener('click',closeAccount);
   accountModal?.addEventListener('click',e=>{if(e.target===accountModal)closeAccount();});
   $('#google-login')?.addEventListener('click',signInGoogle);
   $('#account-signout')?.addEventListener('click',async()=>{if(client)await client.auth.signOut();updateAccountUI(null);$('#account-message').textContent='You have signed out.';});
+  let authReady=Promise.resolve(null);
   if(client){
-    client.auth.getSession().then(({data})=>updateAccountUI(data?.session||null));
+    authReady=client.auth.getSession().then(({data})=>{
+      const session=data?.session||null;
+      updateAccountUI(session);
+      return session;
+    }).catch(()=>null);
     client.auth.onAuthStateChange((_event,session)=>updateAccountUI(session));
+  }
+  if(form) form.noValidate=true;
+  function showOrderMessage(message,success=false){
+    const node=$('#order-message');
+    if(!node)return;
+    node.textContent=message;
+    node.className=success?'form-message success':'form-message';
+    node.setAttribute('aria-live','assertive');
+    node.scrollIntoView({behavior:'smooth',block:'center'});
   }
 
   const fallbackPlans=[{name:'Lifetime',duration:'Lifetime access',price:4500},{name:'1 Month',duration:'30 days',price:2200},{name:'7 Days',duration:'7 days',price:1000},{name:'1 Day Trial',duration:'24 hours',price:300},{name:'3 Days',duration:'3 days',price:600},{name:'15 Days',duration:'15 days',price:1500},{name:'3 Months',duration:'90 days',price:3500},{name:'6 Months',duration:'180 days',price:4000}];
@@ -94,7 +100,7 @@
   function close(){modal.hidden=true;document.body.style.overflow='';}
   $('#close-modal').addEventListener('click',close);modal.addEventListener('click',e=>{if(e.target===modal)close()});document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});$('#search').addEventListener('input',render);
   $('#filters').querySelectorAll('[data-category]').forEach(b=>b.addEventListener('click',()=>{category=b.dataset.category;$('#filters').querySelectorAll('.filter').forEach(x=>x.classList.toggle('active',x===b));render()}));
-  async function readFunctionJson(response,functionName){
+    async function readFunctionJson(response,functionName){
     const contentType=String(response.headers.get('content-type')||'').toLowerCase();
     const raw=await response.text();
     let data;
@@ -109,6 +115,102 @@
   }
   $('#validate-promo')?.addEventListener('click',async()=>{const code=String(form.elements.promo_code?.value||'').trim().toUpperCase(),msg=$('#promo-preview-message');if(!code){validatedPromo='';validatedDiscount=0;msg.textContent='Enter a code first.';updatePlan();return;}msg.textContent='Checking code…';msg.className='fine-print';try{const r=await fetch('/.netlify/functions/validate-promo',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code})});const d=await readFunctionJson(r,'Promo validation');validatedPromo=d.code;validatedDiscount=d.discount_percent;msg.textContent=`${d.code} applied: ${d.discount_percent}% off. Pay the discounted amount shown above.`;msg.className='fine-print success';updatePlan();}catch(err){validatedPromo='';validatedDiscount=0;msg.textContent=err.message||'Promo validation failed.';msg.className='fine-print';updatePlan();}});
   form.elements.promo_code?.addEventListener('input',()=>{validatedPromo='';validatedDiscount=0;$('#promo-preview-message').textContent='Validate the code before paying.';updatePlan();});
-  form.addEventListener('submit',async e=>{e.preventDefault();if(!selected)return;if(!currentSession){$('#account-message').textContent='Please sign in with Google before placing an order.';showAccount();return;}const planIndex=Number($('#plan-select').value)||0,plan=parsePlans(selected)[planIndex],fd=new FormData(form),name=String(fd.get('customer_name')||'').trim(),email=String(fd.get('email')||'').trim(),device=String(fd.get('device')||'').trim(),reference=String(fd.get('payment_reference')||'').trim();const msg=$('#order-message');if(!cfg.EZCASH_NUMBER){msg.textContent='The store owner has not configured the eZ Cash number yet. Please contact support.';msg.className='form-message';return;}if(!name||!email||!reference){msg.textContent='Please complete all required fields.';return;}const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Submitting…';msg.textContent='';try{let receipt_path='';const receiptFile=fd.get('receipt_file');if(receiptFile instanceof File&&receiptFile.size){if(receiptFile.size>3*1024*1024)throw new Error('Receipt image must be 3 MB or smaller.');if(!['image/jpeg','image/png','image/webp'].includes(receiptFile.type))throw new Error('Use a JPG, PNG or WebP receipt image.');const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]||'');reader.onerror=()=>reject(new Error('Could not read receipt image.'));reader.readAsDataURL(receiptFile);});const ur=await fetch('/.netlify/functions/upload-receipt',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({content_type:receiptFile.type,base64})});const ud=await readFunctionJson(ur,'Receipt upload');receipt_path=ud.receipt_path;}const res=await fetch('/.netlify/functions/create-order',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+currentSession.access_token},body:JSON.stringify({customer_name:name,email,device,payment_reference:reference,receipt_path,promo_code:String(fd.get('promo_code')||'').trim(),product_id:selected.id,plan_index:planIndex})});const data=await readFunctionJson(res,'Order submission');const hue=Math.floor(Math.random()*360);msg.innerHTML=`<div class="order-success-card" style="--order-hue:${hue}"><span>ORDER RECEIVED · SYSTEM QUEUED</span><small>YOUR ORDER CODE</small><strong>${esc(data.order.order_code)}</strong><div class="order-success-actions"><button type="button" class="order-code-copy" id="copy-new-order">Copy code</button><a class="order-code-copy order-status-link" href="order-status.html?code=${encodeURIComponent(data.order.order_code)}">Open My Orders ↗</a></div><p>Amount due: ${money(data.order.amount)}<br>Status: <b>Pending verification</b></p><small>After the store confirms your payment and issues your key, open My Orders to view, copy or share it.</small><div class="order-success-actions"><a class="order-code-copy" target="_blank" rel="noopener noreferrer" href="https://wa.me/${encodeURIComponent(cfg.WHATSAPP_NUMBER||'')}?text=${encodeURIComponent('Hello SADEE XDIMA, I submitted order '+data.order.order_code+' for '+data.order.product_name+'. Please check my pending order.') }">Notify store on WhatsApp ↗</a></div></div>`;msg.style.setProperty('--order-hue',hue);msg.className='form-message success';msg.querySelector('#copy-new-order')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(data.order.order_code);msg.querySelector('#copy-new-order').textContent='Copied ✓';}catch{msg.querySelector('#copy-new-order').textContent='Copy unavailable';}});form.reset();$('#plan-select').value='0';updatePlan();}catch(err){msg.textContent=err.message||'Could not submit order. Please contact support.';msg.className='form-message';}finally{submit.disabled=false;submit.textContent='Submit payment details ↗';}});
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const submit=form.querySelector('button[type="submit"], input[type="submit"]');
+    if(submit?.disabled)return;
+    const msg=$('#order-message');
+    try{
+      // Wait until Supabase has restored the saved Google session.
+      if(!currentSession) await authReady;
+      if(!currentSession && client){
+        const {data}=await client.auth.getSession();
+        updateAccountUI(data?.session||null);
+      }
+      if(!selected){showOrderMessage('Please select a product and plan first.');return;}
+      if(!client){showOrderMessage('Login service is unavailable. Please refresh the page or contact the store.');return;}
+      if(!currentSession){
+        showOrderMessage('Please sign in with Google before placing an order.');
+        showAccount();
+        return;
+      }
+      const fd=new FormData(form);
+      const name=String(fd.get('customer_name')||'').trim();
+      const email=String(fd.get('email')||'').trim();
+      const reference=String(fd.get('payment_reference')||'').trim();
+      if(!name){showOrderMessage('Please enter your name.');form.elements.customer_name?.focus();return;}
+      if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+        showOrderMessage('Please enter a valid email address.');form.elements.email?.focus();return;
+      }
+      if(!reference){showOrderMessage('Please enter the eZ Cash transaction reference.');form.elements.payment_reference?.focus();return;}
+      if(!cfg.EZCASH_NUMBER){showOrderMessage('The store owner has not configured the eZ Cash number yet. Please contact the store.');return;}
+      if(email.toLowerCase()!==String(currentSession.user?.email||'').toLowerCase()){
+        showOrderMessage('Use the same email address connected to your signed-in Google account.');form.elements.email?.focus();return;
+      }
+      const planIndex=Number($('#plan-select').value)||0;
+      const plan=parsePlans(selected)[planIndex];
+      if(!plan){showOrderMessage('Please choose a valid product plan.');return;}
+      if(submit){submit.disabled=true;submit.textContent='Submitting…';}
+      showOrderMessage('Sending your order securely. Please wait…');
+      let receipt_path='';
+      const receiptFile=fd.get('receipt_file');
+      if(receiptFile instanceof File && receiptFile.size){
+        if(receiptFile.size>3*1024*1024)throw new Error('Receipt image must be 3 MB or smaller.');
+        if(!['image/jpeg','image/png','image/webp'].includes(receiptFile.type))throw new Error('Use a JPG, PNG or WebP receipt image.');
+        const base64=await new Promise((resolve,reject)=>{
+          const reader=new FileReader();
+          reader.onload=()=>resolve(String(reader.result).split(',')[1]||'');
+          reader.onerror=()=>reject(new Error('Could not read receipt image.'));
+          reader.readAsDataURL(receiptFile);
+        });
+        const uploadResponse=await fetch('/.netlify/functions/upload-receipt',{
+          method:'POST',headers:{'content-type':'application/json'},
+          body:JSON.stringify({content_type:receiptFile.type,base64})
+        });
+        const uploadData=await readFunctionJson(uploadResponse,'Receipt upload');
+        receipt_path=uploadData.receipt_path;
+      }
+      const response=await fetch('/.netlify/functions/create-order',{
+        method:'POST',
+        headers:{'content-type':'application/json','authorization':'Bearer '+currentSession.access_token},
+        body:JSON.stringify({
+          customer_name:name,email,device:String(fd.get('device')||'').trim(),
+          payment_reference:reference,receipt_path,
+          promo_code:String(fd.get('promo_code')||'').trim(),
+          product_id:selected.id,plan_index:planIndex
+        })
+      });
+      const data=await readFunctionJson(response,'Order submission');
+      if(!data?.order?.order_code)throw new Error('The server did not return an order number. Please contact the store before trying again.');
+      const hue=Math.floor(Math.random()*360);
+      msg.innerHTML=`<div class="order-success-card" style="--order-hue:${hue}">
+        <span>ORDER RECEIVED · SYSTEM QUEUED</span><small>YOUR ORDER CODE</small>
+        <strong>${esc(data.order.order_code)}</strong>
+        <div class="order-success-actions">
+          <button type="button" class="order-code-copy" id="copy-new-order">Copy code</button>
+          <a class="order-code-copy order-status-link" href="order-status.html?code=${encodeURIComponent(data.order.order_code)}">Open My Orders ↗</a>
+        </div>
+        <p>Amount due: ${money(data.order.amount)}<br>Status: <b>Pending verification</b></p>
+        <small>After the store confirms your payment and issues your key, open My Orders to view, copy or share it.</small>
+        <div class="order-success-actions">
+          <a class="order-code-copy" target="_blank" rel="noopener noreferrer"
+            href="https://wa.me/${encodeURIComponent(cfg.WHATSAPP_NUMBER||'')}?text=${encodeURIComponent('Hello SADEE XDIMA, I submitted order '+data.order.order_code+' for '+data.order.product_name+'. Please check my pending order.')}">Notify store on WhatsApp ↗</a>
+        </div></div>`;
+      msg.style.setProperty('--order-hue',hue);
+      msg.className='form-message success';
+      msg.scrollIntoView({behavior:'smooth',block:'center'});
+      msg.querySelector('#copy-new-order')?.addEventListener('click',async()=>{
+        try{await navigator.clipboard.writeText(data.order.order_code);msg.querySelector('#copy-new-order').textContent='Copied ✓';}
+        catch{msg.querySelector('#copy-new-order').textContent='Copy unavailable';}
+      });
+      form.reset();
+      if($('#plan-select'))$('#plan-select').value='0';
+      updatePlan();
+    }catch(error){
+      showOrderMessage(error?.message||'Could not submit the order. Please try again or contact support.');
+    }finally{
+      if(submit){submit.disabled=false;submit.textContent='Submit payment details ↗';}
+    }
+  });
   $('#contact-link').href=`https://wa.me/${String(cfg.WHATSAPP_NUMBER||'94768472404').replace(/\D/g,'')}`;$('#contact-link').textContent='WhatsApp support ↗';load();
 })();
