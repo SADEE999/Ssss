@@ -1,0 +1,44 @@
+SADEE PRO STORE - REAL CUSTOMER ACCOUNT SYSTEM
+
+මෙම build එකේ ක්‍රියාත්මක කර ඇති account features:
+- Google OAuth login (දැනට තිබූ setup එක)
+- Email/password sign-up සහ sign-in
+- Email password reset request
+- Profile display name update
+- Signed-in customer password change
+- Customer profile image upload (2 MB max; owner-only upload policy)
+- Customer account එකට සම්බන්ධ order history
+- Admin panel එකේ Supabase Auth customer directory: email, user ID, profile name/photo,
+  registration date, last sign-in, confirmation status, order count, verified spend
+- Customer CSV export
+
+DEPLOY STEPS
+1. Existing Supabase project එකේ database backup එකක් ගන්න.
+2. Supabase SQL Editor: දැනට run කරලා නැත්නම් SUPABASE_FULL_SETUP.sql run කරන්න.
+3. Supabase SQL Editor: supabase/google-customer-accounts.sql run කරන්න.
+4. Supabase SQL Editor: supabase/customer-account-system.sql run කරන්න.
+5. Authentication > Providers තුළ Email provider enable කරන්න. Email confirmation on නම්
+   signup එකෙන් පසු inbox එකේ confirmation link එක click කරන්න.
+6. Authentication > URL Configuration තුළ Site URL සහ Redirect URLs ලෙස
+   https://sadeexdimaot.netlify.app සහ https://sadeexdimaot.netlify.app/** තබන්න.
+   Google OAuth provider එක දැනට වැඩ කරන config එක වෙනස් කරන්න එපා.
+7. Netlify environment variables (server-side only):
+   SUPABASE_URL = Supabase project URL
+   SUPABASE_ANON_KEY = Supabase publishable/anon key
+   SUPABASE_SERVICE_ROLE_KEY = Supabase service role secret (Netlify only; never in config.js)
+   STORE_ADMIN_SECRET = current private admin secret
+8. Netlify deploy කරන්න. Customer profile/avatar upload සඳහා customer-avatars bucket එක SQL එකෙන්
+   සාදනවා. Admin Customers tab එකට private Store Admin Secret එක ඉල්ලයි.
+
+SECURITY NOTES
+- Browser config.js තුළ publishable/anon key පමණක් තිබිය යුතුයි.
+- service_role key, Google client secret, STORE_ADMIN_SECRET browser files වලට දාන්න එපා.
+- Payment reference එක customer දුන්නා කියලා payment verified වෙන්නේ නැහැ. Admin actual eZ Cash
+  payment එක check කරලා පසුව පමණක් license issue කරන්න.
+- Customer list endpoint එක STORE_ADMIN_SECRET මඟින් ආරක්ෂා කරලා තියෙනවා; එය කිසිවෙකුට share නොකරන්න.
+
+NOT YET IMPLEMENTED IN THIS BUILD
+Live chat/realtime messaging, loyalty point accrual/redemption, referral reward settlement,
+flash-sale scheduler, verified-purchase review votes, automated payment gateway verification,
+۽ automated database backup/restore are NOT live features in this build. Those need separate
+server-side workflows, policies, and testing; do not assume that installing the account SQL enables them.

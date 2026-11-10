@@ -1,0 +1,7 @@
+SADEE PRO STORE VIDEO NOTES
+
+- Removed the SYSTEM ONLINE // SADEE-OS text overlay from above the homepage hero video.
+- Kept the video, visual effects, and compact player controls.
+- The player attempts audible autoplay after video metadata loads.
+- Android Chrome and other mobile browsers may block autoplay with sound until the visitor taps Play or TAP FOR SOUND. This is a browser policy and cannot be overridden by website code.
+- The Sound button starts playback with sound after a visitor gesture, or mutes an already playing video.

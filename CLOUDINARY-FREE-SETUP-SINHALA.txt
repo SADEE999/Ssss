@@ -1,0 +1,19 @@
+SADEE PRO STORE — CLOUDINARY FREE HERO MEDIA SETUP
+
+This update changes only homepage hero video/photo uploads to Cloudinary. Existing Supabase products, orders, settings and other functions remain in place.
+
+1) Create a free account at https://cloudinary.com/ and open the Cloudinary Console.
+2) Copy the Cloud name and API Key. Keep the API Secret private.
+3) In Netlify: Site configuration → Environment variables, add:
+   CLOUDINARY_CLOUD_NAME = your Cloudinary cloud name
+   CLOUDINARY_API_KEY = your Cloudinary API key
+   CLOUDINARY_API_SECRET = your Cloudinary API secret
+   Keep the existing STORE_ADMIN_SECRET unchanged.
+4) Save variables and redeploy the site.
+5) Open /admin/ → Store settings → Homepage hero video. Choose an MP4/WebM file (up to 100 MB) and press Save hero media.
+
+SECURITY: Never put CLOUDINARY_API_SECRET in HTML, JavaScript, GitHub, or a public message. The Netlify function signs each upload request using the private environment variable. The browser receives only a short-lived upload signature.
+
+LIMITS: Cloudinary Free has usage/credit limits; 100 MB is the per-file maximum, not unlimited storage or bandwidth. Check your Cloudinary usage dashboard. Android browsers may still block audible autoplay until the visitor taps.
+
+Existing direct HTTPS video/image URL fields continue to work. Product image uploads remain on the existing Supabase flow.

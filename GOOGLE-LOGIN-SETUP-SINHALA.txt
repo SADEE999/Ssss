@@ -1,0 +1,31 @@
+SADEE PRO STORE — GOOGLE ACCOUNT UPDATE
+
+1) Supabase Dashboard → SQL Editor open karala:
+   supabase/google-customer-accounts.sql file eke SQL tika run karanna.
+
+2) Supabase → Authentication → Providers → Google enable karanna.
+   Google Cloud Console eken OAuth Client ID + Secret hadala Supabase Google provider ekata danna.
+   Google password eka website ekata denna epa.
+
+3) Supabase → Authentication → URL Configuration:
+   Site URL = oyage live Netlify website URL eka.
+   Redirect URLs walata https://OYAGE-SITE.netlify.app/** add karanna.
+   Custom domain ekak thiyenawanam ekath add karanna.
+
+4) Netlify → Site configuration → Environment variables:
+   SUPABASE_ANON_KEY = config.js eke thiyena public anon/publishable key eka.
+   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, STORE_ADMIN_SECRET, Cloudinary values delete/change karanna epa.
+   Service role key/admin secret kawuruth ekka share karanna epa.
+
+5) Netlify redeploy karanna.
+
+WEDA KARANA WIDIYA:
+- Website eka account nathuwath browse karanna puluwan.
+- Buy/order submit karanna kalin Google account eken login wenna one.
+- Order eka verified Google user ID ekata link wenawa.
+- My Orders page eke login una account ekata adala orders list wenawa.
+- Parana guest orders order code + email eken balanna puluwan.
+
+IMPORTANT:
+Google OAuth client ID/Secret Supabase dashboard eke set nokara Google login eka wada karanne na.
+Test order ekak dala admin verification flow eka test karala passe live customers lata denna.

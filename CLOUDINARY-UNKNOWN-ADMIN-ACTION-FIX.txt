@@ -1,0 +1,11 @@
+SADEE PRO STORE — Cloudinary upload fix
+
+Fixes the “Unknown admin action” error. The Cloudinary signing request now calls the dedicated Netlify function /.netlify/functions/cloudinary-sign instead of sending cloudinary_sign to manage-store.
+
+Keep these Netlify environment variables:
+CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET
+STORE_ADMIN_SECRET (existing value; do not change)
+
+After deploying, open /admin/ and upload the hero video/photo again. When prompted, enter the same private STORE_ADMIN_SECRET already configured in Netlify. Never put the Cloudinary API Secret in frontend files or send it in chat.
